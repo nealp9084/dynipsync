@@ -216,12 +216,6 @@ def main():
   else:
     logging.error('%s domain registration not found.' % config.domain)
     return 1
-    # assert client.register_domain({
-    #   'domain_name': config.domain,
-    #   'period': 5,
-    #   'nameservers': [], 'contacts': []
-    # })
-    # print 'Successfully registered the %s domain.' % config.domain
 
   dns_A_records = client.get_dns_A_records()
 
@@ -241,4 +235,4 @@ def main():
 
 
 if __name__ == '__main__':
-  sys.exit(main() or 1)
+  sys.exit(main())
