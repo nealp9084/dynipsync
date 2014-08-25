@@ -1,6 +1,8 @@
 # dynipsync
 A free dynamic DNS tool for the name.com API
 
+This is a work in progress; don't expect it to work.
+
 ## Description 
 
 dynipsync is a free, cross-platform dynamic DNS utility. This utility (dynipsync) will automatically update the specified name.com DNS A record whenever your IP address changes. At this time, dynipsync will only work with the name.com API.
