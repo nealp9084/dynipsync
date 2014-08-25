@@ -1,0 +1,17 @@
+{
+  "test": {
+      "username": "nealp9084-ote",
+      "api_token": "1234123412341234123412341234123412341234",
+      "url": "https://api.dev.name.com",
+      "domain": "epicdomain.name",
+      "subdomain": "vpn"
+  },
+  "production": {
+      "username": "nealp9084",
+      "api_token": "1234123412341234123412341234123412341234",
+      "url": "https://api.name.com",
+      "domain": "epicdomain.name",
+      "subdomain": "vpn"
+  },
+  "environment": "test"
+}
