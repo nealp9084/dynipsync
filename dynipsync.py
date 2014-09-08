@@ -16,31 +16,26 @@
 import sys
 import logging
 from argparse import ArgumentParser
-from ConfigFile import ConfigFile
-from APIClient import APIClient
+from lib.APIClient import APIClient
+from lib.ConfigFile import ConfigFile
 
 def main():
-  # TODO: command line arg parsing: credential file, ip check
+  # read in the command line args
   parser = ArgumentParser(description=
                           'A dynamic DNS client for the Name.com API')
-
   parser.add_argument('-f', '--config-file', dest='config_file', required=True,
                     help='The JSON config file containing Name.com API'
                          'credentials. See conf/config.json.example for'
                          'a sample config file.')
   parser.add_argument('-v', '--verbose', action='store_true', dest='verbose',
-                    default=True, help='Print debugging information')
+                    default=False, help='Print debugging information')
 
   opts = parser.parse_args()
 
   if opts.verbose:
     logging.root.setLevel(logging.DEBUG)
 
-  if not opts.config_file:
-    #logging.error('No config file was specified')
-    parser.print_usage()
-    return 1
-
+  # read in the config file
   config = ConfigFile(opts.config_file)
 
   if not config.validate():
