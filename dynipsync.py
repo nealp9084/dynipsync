@@ -130,7 +130,14 @@ class APIClient:
     else:
       return {}
 
-  def create_dns_A_record(self, target):
+  def create_dns_A_record(self, target, dns_A_records=None):
+    dns_A_records = dns_A_records or self.get_dns_A_records()
+
+    # sanity check: does the DNS A record actually exist?
+    if self.config.fqdn in dns_A_records:
+      record = dns_A_records[self.config.fqdn]
+      return record['content'] == target
+
     response = self.post('/api/dns/create/%s' % self.config.domain, {
       'hostname': self.config.subdomain,
       'type': 'A',
@@ -140,9 +147,36 @@ class APIClient:
     })
     return response['result']['code'] == 100
 
-  # TODO: implement
+  def delete_dns_A_record(self, dns_A_records=None):
+    dns_A_records = dns_A_records or self.get_dns_A_records()
+
+    # sanity check: does the DNS A record actually exist?
+    if self.config.fqdn not in dns_A_records:
+      return True
+
+    record = dns_A_records[self.config.fqdn]
+
+    response = self.post('/api/dns/delete/%s' % self.config.domain, {
+      'record_id': record['record_id']
+    })
+    return response['result']['code'] == 100
+
   def update_dns_A_record(self, new_target):
-    1
+    dns_A_records = self.get_dns_A_records()
+
+    if self.config.fqdn in dns_A_records:
+      record = dns_A_records[self.config.fqdn]
+
+      # check if the DNS A record needs to be updated
+      if record['content'] == new_target:
+        return True
+
+      # the DNS A record needs to be updated after all
+      if self.delete_dns_A_record(dns_A_records):
+        if self.create_dns_A_record(new_target, dns_A_records):
+          return True
+
+    return False
 
   def logout(self):
     assert self.is_logged_in
