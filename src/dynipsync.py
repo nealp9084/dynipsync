@@ -15,17 +15,37 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import sys
 import logging
+from argparse import ArgumentParser
 from ConfigFile import ConfigFile
 from APIClient import APIClient
 
-def main(argv):
+def main():
   # TODO: command line arg parsing: credential file, ip check
-  logging.root.setLevel(logging.DEBUG)
+  parser = ArgumentParser(description=
+                          'A dynamic DNS client for the Name.com API')
 
-  config = ConfigFile('conf/config.json')
+  parser.add_argument('-f', '--config-file', dest='config_file', required=True,
+                    help='The JSON config file containing Name.com API'
+                         'credentials. See conf/config.json.example for'
+                         'a sample config file.')
+  parser.add_argument('-v', '--verbose', action='store_true', dest='verbose',
+                    default=True, help='Print debugging information')
+
+  opts = parser.parse_args()
+
+  if opts.verbose:
+    logging.root.setLevel(logging.DEBUG)
+
+  if not opts.config_file:
+    #logging.error('No config file was specified')
+    parser.print_usage()
+    return 1
+
+  config = ConfigFile(opts.config_file)
 
   if not config.validate():
-    logging.error('There is an error in the config file.')
+    logging.error('The config file (%s) is unreadable or invalid.' %
+                  opts.config_file)
     return 1
 
   logging.info('Successfully read in the config file.')
@@ -70,4 +90,4 @@ def main(argv):
   return 0
 
 if __name__ == '__main__':
-  sys.exit(main(sys.argv))
+  sys.exit(main())
