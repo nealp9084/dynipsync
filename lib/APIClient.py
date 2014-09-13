@@ -50,6 +50,8 @@ class APIClient:
     return response['result']['code'] == 100
 
   def get_domains(self):
+    assert self.is_logged_in
+
     response = self.get('/api/domain/list')
     if response['result']['code'] == 100:
       return response['domains']
@@ -57,6 +59,8 @@ class APIClient:
       return {}
 
   def get_dns_A_records(self):
+    assert self.is_logged_in
+
     result = {}
     response = self.get('/api/dns/list/%s' % self.config.domain)
 
@@ -74,6 +78,8 @@ class APIClient:
     return result
 
   def create_dns_A_record(self, target, dns_A_records=None):
+    assert self.is_logged_in
+
     dns_A_records = dns_A_records or self.get_dns_A_records()
 
     # does the DNS A record actually exist?
@@ -91,6 +97,8 @@ class APIClient:
     return response['result']['code'] == 100
 
   def delete_dns_A_record(self, dns_A_records=None):
+    assert self.is_logged_in
+
     dns_A_records = dns_A_records or self.get_dns_A_records()
 
     # does the DNS A record actually exist?
@@ -105,6 +113,8 @@ class APIClient:
     return response['result']['code'] == 100
 
   def update_dns_A_record(self, new_target):
+    assert self.is_logged_in
+
     dns_A_records = self.get_dns_A_records()
 
     # does the DNS A record actually exist?
