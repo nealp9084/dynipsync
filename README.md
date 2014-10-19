@@ -1,7 +1,7 @@
 # dynipsync
 A free dynamic DNS tool for the name.com API
 
-This is a work in progress; don't expect it to work.
+This is a work in progress, so don't expect it to work perfectly. It works somewhat, though!
 
 ## Description 
 
