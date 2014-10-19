@@ -100,7 +100,7 @@ class APIClient:
           del record['type']
           result[record_name] = record
 
-      self.set_cache_line('records', records)
+      self.set_cache_line('records', result)
 
     return result
 
@@ -150,10 +150,6 @@ class APIClient:
     })
 
     if response['result']['code'] == 100:
-      # self.invalidate_cache()
-      # return True
-
-      # TODO: break here
       del dns_A_records[self.config.fqdn]
       self.set_cache_line('records', dns_A_records)
       return True
