@@ -16,6 +16,7 @@
 import json
 from ConfigFile import ConfigFile
 import requests
+from copy import deepcopy
 
 class APIClient:
   def __init__(self, config):
@@ -23,6 +24,8 @@ class APIClient:
     assert config.validate()
     self.config = config
     self.session_token = None
+    # TODO: create a DNSCache class and use that to aggressively cache domains
+    self.cache = {}
 
   def hello(self, authenticate_session=False):
     assert self.is_logged_in
@@ -37,8 +40,11 @@ class APIClient:
     }, authenticate_session=False)
 
     if response['result']['code'] == 100:
+      # update internal state
       self.session_token = response['session_token']
       self.is_logged_in = True
+      # invalidate the cache after a login
+      self.invalidate_cache()
       return True
 
     return False
@@ -47,19 +53,38 @@ class APIClient:
     assert self.is_logged_in
 
     response = self.get('/api/logout')
-    return response['result']['code'] == 100
 
-  def get_domains(self):
+    if response['result']['code'] == 100:
+      # update internal state
+      self.session_token = None
+      self.is_logged_in = False
+      # invalidate the cache after a logout
+      self.invalidate_cache()
+      return True
+    else:
+      return False
+
+  def get_domains(self, use_cache=True):
     assert self.is_logged_in
 
+    if use_cache:
+      if self.is_cache_line_set('domains'):
+        return self.get_cache_line('domains')
+
     response = self.get('/api/domain/list')
+
     if response['result']['code'] == 100:
+      self.set_cache_line('domains', response['domains'])
       return response['domains']
     else:
       return {}
 
-  def get_dns_A_records(self):
+  def get_dns_A_records(self, use_cache=True):
     assert self.is_logged_in
+
+    if use_cache:
+      if self.is_cache_line_set('records'):
+        return self.get_cache_line('records')
 
     result = {}
     response = self.get('/api/dns/list/%s' % self.config.domain)
@@ -75,17 +100,24 @@ class APIClient:
           del record['type']
           result[record_name] = record
 
+      self.set_cache_line('records', records)
+
     return result
 
-  def create_dns_A_record(self, target, dns_A_records=None):
+  def create_dns_A_record(self, target, use_cache=True):
     assert self.is_logged_in
 
-    dns_A_records = dns_A_records or self.get_dns_A_records()
+    dns_A_records = self.get_dns_A_records(use_cache=use_cache)
 
     # does the DNS A record actually exist?
     if self.config.fqdn in dns_A_records:
       record = dns_A_records[self.config.fqdn]
-      return record['content'] == target
+      if record['content'] == target:
+        # it exists and is configured properly, so there is nothing to do
+        return True
+      else:
+        # it exists, but the contents are not what we want, so we need to update it
+        return self.update_dns_A_record(target, use_cache=True)
 
     response = self.post('/api/dns/create/%s' % self.config.domain, {
       'hostname': self.config.subdomain,
@@ -94,12 +126,18 @@ class APIClient:
       'ttl': 300,
       'priority': 10
     })
-    return response['result']['code'] == 100
 
-  def delete_dns_A_record(self, dns_A_records=None):
+    if response['result']['code'] == 100:
+      # TODO: break here
+      self.invalidate_cache_line('records')
+      return True
+    else:
+      return False
+
+  def delete_dns_A_record(self, use_cache=True):
     assert self.is_logged_in
 
-    dns_A_records = dns_A_records or self.get_dns_A_records()
+    dns_A_records = self.get_dns_A_records(use_cache=use_cache)
 
     # does the DNS A record actually exist?
     if self.config.fqdn not in dns_A_records:
@@ -110,12 +148,22 @@ class APIClient:
     response = self.post('/api/dns/delete/%s' % self.config.domain, {
       'record_id': record['record_id']
     })
-    return response['result']['code'] == 100
 
-  def update_dns_A_record(self, new_target):
+    if response['result']['code'] == 100:
+      # self.invalidate_cache()
+      # return True
+
+      # TODO: break here
+      del dns_A_records[self.config.fqdn]
+      self.set_cache_line('records', dns_A_records)
+      return True
+    else:
+      return False
+
+  def update_dns_A_record(self, new_target, use_cache=True):
     assert self.is_logged_in
 
-    dns_A_records = self.get_dns_A_records()
+    dns_A_records = self.get_dns_A_records(use_cache=use_cache)
 
     # does the DNS A record actually exist?
     if self.config.fqdn in dns_A_records:
@@ -126,10 +174,28 @@ class APIClient:
         return True
 
       # the DNS A record needs to be updated after all
-      return self.delete_dns_A_record(dns_A_records) and \
-             self.create_dns_A_record(new_target)
+      # note: the cache will automatically be updated
+      return self.delete_dns_A_record(use_cache=True) and \
+             self.create_dns_A_record(new_target, use_cache=True)
     else:
-      return self.create_dns_A_record(new_target, dns_A_records)
+      return self.create_dns_A_record(new_target, use_cache=True)
+
+  def invalidate_cache(self):
+    self.cache = {}
+
+  def invalidate_cache_line(self, key):
+    if key in self.cache:
+      del self.cache[key]
+
+  def set_cache_line(self, key, value):
+    self.cache[key] = deepcopy(value)
+
+  def is_cache_line_set(self, key):
+    return key in self.cache
+
+  def get_cache_line(self, key):
+    assert self.is_cache_line_set(key)
+    return deepcopy(self.cache[key])
 
   def form_endpoint(self, endpoint):
     (first_part, second_part) = (self.config.url, endpoint)
