@@ -18,6 +18,7 @@ import logging
 from argparse import ArgumentParser
 from lib.APIClient import APIClient
 from lib.ConfigFile import ConfigFile
+from lib.IPAddress import IPAddress
 
 def main():
   # read in the command line args
@@ -29,8 +30,15 @@ def main():
                          'a sample config file.')
   parser.add_argument('-v', '--verbose', action='store_true', dest='verbose',
                     default=False, help='Print debugging information')
+  parser.add_argument('-i', '--ip-address', dest='ip_address', required=True,
+                    help='New IPv4 or IPv6 address for the given subdomain')
 
   opts = parser.parse_args()
+
+  # validate the ip address
+  if not IPAddress.validate(opts.ip_address):
+    parser.print_usage()
+    return 1
 
   # set log level
   if opts.verbose:
@@ -75,8 +83,8 @@ def main():
     logging.info('%s DNS A record found.' % config.fqdn)
 
     # update the subdomain's record
-    if client.update_dns_A_record('192.168.1.24'):
-      logging.info('Updated DNS A record: 192.168.1.24')
+    if client.update_dns_A_record(opts.ip_address):
+      logging.info('Updated DNS A record: %s' % opts.ip_address)
     else:
       logging.error('Failed to update DNS A record!')
   else:
@@ -85,7 +93,7 @@ def main():
                  config.fqdn)
 
     # create the subdomain's record
-    if not client.create_dns_A_record('130.131.132.133'):
+    if not client.create_dns_A_record(opts.ip_address):
       logging.error('Failed to automatically create a DNS A record for %s.' %
                     config.fqdn)
       return 1
