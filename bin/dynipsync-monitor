@@ -1,0 +1,6 @@
+#!/bin/bash
+# Run this script as a cron job on a monitoring server (a webserver that gets
+# pinged periodically by a machine with a dynamic IP address).
+
+ipaddress=`/usr/bin/tail -1 /var/log/nginx/ping.log | cut -d ' ' -f 1`
+/usr/bin/python dynipsync.py -f /etc/dynipsync/config.json -i $ipaddress

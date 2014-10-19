@@ -1,0 +1,5 @@
+#!/bin/bash
+# Run this script as a cron job on a server with a dynamic IP address.
+
+ipaddress=`/usr/bin/curl -s https://icanhazip.com`
+/usr/bin/python dynipsync.py -f /etc/dynipsync/config.json -i $ipaddress
